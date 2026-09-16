@@ -1,0 +1,10 @@
+# Generated data (episodes, logs, snapshots) — regenerate with scenes/run_*.py
+artifacts/
+# URDF converter cache (machine-specific paths)
+assets/openarm/config.yaml
+assets/openarm/.asset_hash
+# Python
+__pycache__/
+*.pyc
+# Local reference material
+wooden_table.jpg
