@@ -13,7 +13,7 @@
 
 ![Showcase: furnished room, pick among clutter, pick-and-place into a bin, right-to-left handover](media/showcase.gif)
 
-▶ **[Watch the full 60 s showcase video (1280×720)](media/showcase.mp4)**: room tour, mug pick among clutter, soup can → bin, mustard-bottle handover, each with a live wrist-camera inset.
+▶ **[Watch the full 90 s showcase video (1280×720)](media/showcase.mp4)**: room tour, mug pick among clutter, soup can → bin, mustard-bottle handover, and a mug picked, handed over and dropped into a bin, each with a live wrist-camera inset.
 
 ## About this project
 
@@ -26,9 +26,9 @@ on the core objects, **zero executed grasp failures** across the object inventor
 two-arm handover.
 
 What I'd point a reviewer to:
-- **[Engineering notes](docs/ENGINEERING.md):** how I work, plus six case studies (problem → root cause → fix → measured result).
-- **[Mistakes and lessons](docs/MISTAKES.md):** 44 documented issues, including real bugs in common OpenArm / Isaac Sim setups.
-- **[Design decisions](docs/DECISIONS.md):** 26 decisions with the alternatives I rejected and why.
+- **[Engineering notes](docs/ENGINEERING.md):** how I work, plus seven case studies (problem → root cause → fix → measured result).
+- **[Mistakes and lessons](docs/MISTAKES.md):** 48 documented issues, including real bugs in common OpenArm / Isaac Sim setups.
+- **[Design decisions](docs/DECISIONS.md):** 27 decisions with the alternatives I rejected and why.
 - **[Process log](docs/PROCESS_LOG.md):** every step, in order.
 
 > This project is actively developed. Scripted manipulation (pick, pick-and-place, handover), a verified 21-object inventory, table clutter, a configurable furnished room, episode recording, LeRobot v2.1 export and keyboard/gamepad teleoperation are working and verified; policy integration and batch evaluation come next.
@@ -84,7 +84,8 @@ Results below are from the final scripted demonstrator, with 10 episodes per tas
 | Handover, right → left (soup can) | **10/10**, plus **3/3** recorded on video |
 | Pick-and-place, soup can → KLT bin | **10/10**; with 6 clutter items **3/3** |
 | Inventory picks: glasses · grey bowl · mugs (×4) · foam brick · marker | **10/10** · **10/10** · **9/10** each · **8/10** · **7/10** (all misses = `no plan`, 0 grasp failures) |
-| Handover variety: glasses · mustard · mug | **5/5** · **5/5** · **4/5** |
+| Handover variety: glasses · mustard · mug | **5/5** · **5/5** · **5/5** |
+| Pick → handover → place in bin: soup can · mustard · short glass · mug | **5/5** · **5/5** · **5/5** · **10/10** |
 | Inventory drop test (stable, correct size after reset) | **21/21** items |
 
 Kinematics and hold checks:
@@ -138,6 +139,14 @@ An unreachable pose is reported as `no plan` and is not executed.
 ![Handover phases from all three cameras](media/handover_phases.png)
 
 [`scenes/handover_planner.py`](scenes/handover_planner.py) keeps the soup can upright. The right hand picks near the top and carries it to the handover point; the left hand approaches horizontally, wraps the lower body, and closes. The right releases and lifts away before the left backs off while holding the can. Separating the two grips vertically keeps both hands clear and places the can's center of mass inside the receiving grasp.
+
+### Pick → handover → place
+
+[`scenes/transfer_planner.py`](scenes/transfer_planner.py) chains the handover with a left-arm place: the left hand carries the object over a bin (turning its wrist on the way), releases it just above the rim, backs out and returns home. For mugs, the handover wrist yaw is chosen so the handle points away from the incoming left hand.
+
+```bash
+$PY scenes/run_handover_place.py --object mug_c1 --episodes 5 --clutter 6 --room full
+```
 
 ### Object inventory, clutter and pick-and-place
 

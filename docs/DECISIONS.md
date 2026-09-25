@@ -115,3 +115,6 @@ KLT bin as a kinematic place target at the feasible spot found offline (inset 0.
 
 ## D26 — Grasp-yaw tolerance (2026-09-25)
 `GraspSpec.yaw_tolerance`: exact-axis grasps are tried first, then ±tol/2 and ±tol, with a travel penalty for off-axis. Mugs / grey bowl ±35° (body grasp away from the handle), marker / foam brick ±15°.
+
+## D27 — Pick → handover → place task (2026-09-25)
+`scenes/transfer_planner.py` (mine) + `scenes/run_handover_place.py` (written by Codex from my spec, verified by me). The proven handover (D19), then the left carries the object over a fixed KLT bin and **releases it just above the rim**. The left claws hold the object's lower body from the side, so lowering it into the bin would drive the claws into the wall. Then back out along the gripper axis and return home. The bin spot (inset 0.40, y +0.24) is the center of a 20-spot block found feasible for all 4 test objects by `tools/search_transfer_spot.py`, clear of the pick zone and the left hand's approach corridor. The wrist may turn while carrying (M45); the carry takes 4 s (M46); handover yaws keep a mug's handle away from the left hand (M47).

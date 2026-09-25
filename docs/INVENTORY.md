@@ -30,7 +30,7 @@ Roles: `clutter` (distractor), `pick` (graspable by the claw gripper's top pinch
 |---|---|---|
 | Short glass / tall glass | 10/10 · 10/10 | 5/5 · 5/5 |
 | Grey bowl | 10/10 | – |
-| Mugs A2 / B1 / C1 / D1 | 9/10 each | mug C1: 4/5 |
+| Mugs A2 / B1 / C1 / D1 | 9/10 each | mug C1: 5/5 (handle-aware, M47) |
 | Foam brick | 8/10 | too short for the side-wrap (planner reports "no room") |
 | Large marker | 7/10 | – |
 | (earlier) cube, soup can, mustard, YCB mug | 10/10, 10/10, 10/10, 8/10 | soup can 10/10, mustard 5/5 |

@@ -103,6 +103,8 @@ def main():
     seq += fade(task_clip("showcase_place", 0, "Pick-and-place: soup can → bin", "10/10 verified · 3/3 with 6 clutter items"))
     seq += fade(card("Right → left handover", "right holds the top · left wraps the lower body"))
     seq += fade(task_clip("showcase_handover_mustard", 0, "Handover: mustard bottle", "right releases, left keeps the grip · 5/5 verified", wrist="cam_left_wrist"))
+    seq += fade(card("Pick → handover → place", "right picks · hands over · left carries and drops it in the bin"))
+    seq += fade(task_clip("showcase_transfer_mug", 0, "Pick → handover → bin: mug", "handle turned away from the left hand · 4 objects verified (mug 10/10)", wrist="cam_left_wrist"))
     seq += fade(card("github.com/amitgit24/Issac-sim-teleop-eval", "actively developed · LeRobot export · keyboard / gamepad teleop", 3.0))
     media = ROOT / "media"
     imageio.mimwrite(media / "showcase.mp4", seq, fps=FPS, codec="libx264", quality=None,

@@ -2,7 +2,7 @@
 
 This page is the short version of how the project was built and why it works. The full, unedited
 trail is in [PROCESS_LOG.md](PROCESS_LOG.md) (every step in order), [DECISIONS.md](DECISIONS.md)
-(D1–D26, each with alternatives and evidence) and [MISTAKES.md](MISTAKES.md) (M1–M44: symptom → root
+(D1–D27, each with alternatives and evidence) and [MISTAKES.md](MISTAKES.md) (M1–M48: symptom → root
 cause → fix → lesson).
 
 ## How I work
@@ -67,7 +67,7 @@ cause → fix → lesson).
   the center of mass).
 - **Redesign:** keep the can upright; the right hand holds the top, the left wraps the lower body
   from the side, so the two hands use disjoint heights.
-- **Result:** **10/10**, then generalized to other objects (glasses 5/5, mustard 5/5, mug 4/5).
+- **Result:** **10/10**, then generalized to other objects (glasses 5/5, mustard 5/5, mug 5/5).
   → M31–M34, M43, D19.
 
 ### 6. Teleop that doesn't get stuck
@@ -79,6 +79,18 @@ cause → fix → lesson).
 - **Result:** 18 of the 25 physically reachable teleop tasks, with limits clearly reported to the
   operator. → M35, M36, D21.
 
+### 7. One task failure, two separate causes
+- **Task:** right hand picks → hands over → left hand drops the object into a bin. Can, mustard and
+  glass passed 5/5; the mug passed 2/5.
+- **Investigation:** per-step traces of the failing episodes, not guesses. One failure mode was the
+  mug slipping out of the left grip mid-carry (fingers snapping to 0); the other was identical
+  run-to-run: the mug being pushed during the left hand's approach.
+- **Root causes:** a fast carry with a wrist turn, and the mug's handle pointing into the incoming
+  left hand.
+- **Fix:** a slower carry, and a handover planner that tracks the handle from the grasp and only uses
+  wrist yaws that turn it away (otherwise it reports "no plan").
+- **Result:** mug **2/5 → 10/10**; the plain mug handover also improved (4/5 → 5/5). → M46, M47, D27.
+
 ## Verification at a glance
 
 | Check | Where | Result |
@@ -86,6 +98,6 @@ cause → fix → lesson).
 | FK vs simulator, 40 random configurations | `tests/check_kinematics.py` | 0.000 mm |
 | Both fingers stop on a fixed box | `tests/check_gripper_contact.py` | pass |
 | Teleop key / button mapping (injected events) | `tests/check_teleop_inputs.py` | 28/28 |
-| Unit tests (planners, kinematics, teleop safety, clutter, inventory) | `tests/unit`, CI | 18/18 |
+| Unit tests (planners incl. handover-to-bin, kinematics, teleop safety, clutter, inventory) | `tests/unit`, CI | 20/20 |
 | Picks / pick-and-place / handover | `scenes/run_*.py` | see the README results table |
 | Dataset export (exact values + frame alignment) | `tools/validate_lerobot.py` | pass |

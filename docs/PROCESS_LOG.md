@@ -107,6 +107,13 @@ Goal: position-based pick with the right arm, simple object first, then househol
 2. Recorded in the full room with 6 clutter items: mug_c1 pick 2/2, soup can → bin 2/2. The tall-glass handover succeeded 2/2 but the glass is transparent and nearly invisible on video, so the showcase uses the mustard bottle (2/2) with a closer orbit centered on the handover point.
 3. `tools/make_showcase_video.py`: title cards, room tour, task clips with a wrist-camera inset and captions, fades → `media/showcase.mp4` (60 s, 8.2 MB) and `media/showcase.gif` (README hero). Text via PIL (this ffmpeg has no drawtext); long titles auto-shrink (the end-card URL overflowed at first).
 
+## Step 10 — Pick → handover → place into a bin (2026-09-25)
+
+1. New task requested: the right hand picks, hands the object to the left, and the left places it in a bin; test with 3–4 objects. Wrote the planner myself; delegated the runner to Codex with a spec (it wrote and syntax-checked it; I ran and verified it).
+2. Offline bin-spot search: 0/36 at first (M45). Allowing a wrist turn while carrying gave 20 spots for all 4 objects; chose inset 0.40, y +0.24.
+3. Sim: soup can, mustard, short glass 5/5 each; mug 2/5. Traces showed two separate causes: the mug slipping in a fast carry (M46, carry slowed to 4 s) and the handle hitting the left hand at the handover (M47, handle-aware handover yaw). Mug: 10/10.
+4. Final: soup can 5/5, mustard 5/5, short glass 5/5, mug 10/10; plain handover regression soup can 5/5, mug 5/5 (was 4/5). Unit tests 20/20 (new: transfer plan, handle direction). Showcase clip added to `media/showcase.mp4` (fixed a dtype crash on the way, M48).
+
 ## Next (not started)
 
 - Record human teleop demos; larger scripted data collection; export with `tools/export_lerobot.py`.

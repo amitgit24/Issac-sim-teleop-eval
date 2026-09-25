@@ -209,3 +209,17 @@ The planner always used the can's grasp direction (mugs: "right pick not reachab
 
 **M44 — exact grasp axis halved coverage for 2-fold-symmetric objects.**
 Mugs, bowl, marker and brick were pickable in only 5/10 orientations. A per-object yaw tolerance (exact axis first) raised mugs to 9/10 with zero grasp failures.
+
+## Pick → handover → place (step 10, 2026-09-25)
+
+**M45 — keeping the handover orientation while carrying.**
+0 of 36 bin spots were feasible for 4 objects: the left gripper held its exact handover orientation (fingers pointing −y), which is only reachable near the robot's center line, where the handover happens. Letting the wrist turn about the vertical axis while carrying (the object stays upright) gave 20 spots feasible for all 4 objects.
+
+**M46 — a fast carry shook the mug loose.**
+A 2 s joint-space carry with a wrist turn shook the short mug out of the 3 N·m side grip (the left fingers snapped to 0 mid-carry). Slowed to 4 s.
+
+**M47 — the mug's handle hit the incoming left hand.**
+Two mug orientations still failed identically: the handle pointed into the left hand's approach and the claws pushed the mug. The planner now tracks the handle through the grasp and only uses handover yaws that turn it away from the left hand (or reports "no plan"). Mug transfer went 2/5 → 10/10; plain mug handover 4/5 → 5/5.
+
+**M48 — float64 tensors in a camera pose.**
+The showcase camera helper built tensors from numpy values without a dtype and crashed ("expected Float"). The helper now always uses float32. The same class of bug as the earlier scratch-script crash.
