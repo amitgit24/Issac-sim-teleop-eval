@@ -101,6 +101,12 @@ Goal: position-based pick with the right arm, simple object first, then househol
 6. Inventory pick verification: 0 grasp failures; misses were "no plan" for 2-fold-symmetric items. Yaw tolerance (D26, M44): mugs 9/10, grey bowl 10/10, glasses 10/10, foam brick 8/10, marker 7/10.
 7. Handover variety: `--object` plus fixes (M43): soup can 5/5, glass_short 5/5, glass_tall 5/5, mustard 5/5, mug_c1 4/5; foam brick too short for the side-wrap.
 
+## Step 9 — Showcase videos (2026-09-25)
+
+1. `--showcase` option on run_pick / run_pick_place / run_handover: a 1280×720 camera orbiting ±38° on the room side, recorded per episode (not part of the dataset). `tools/record_room_tour.py`: 360° orbit of the furnished room (radius kept inside the furniture).
+2. Recorded in the full room with 6 clutter items: mug_c1 pick 2/2, soup can → bin 2/2. The tall-glass handover succeeded 2/2 but the glass is transparent and nearly invisible on video, so the showcase uses the mustard bottle (2/2) with a closer orbit centered on the handover point.
+3. `tools/make_showcase_video.py`: title cards, room tour, task clips with a wrist-camera inset and captions, fades → `media/showcase.mp4` (60 s, 8.2 MB) and `media/showcase.gif` (README hero). Text via PIL (this ffmpeg has no drawtext); long titles auto-shrink (the end-card URL overflowed at first).
+
 ## Next (not started)
 
 - Record human teleop demos; larger scripted data collection; export with `tools/export_lerobot.py`.

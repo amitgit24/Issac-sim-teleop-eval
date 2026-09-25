@@ -8,7 +8,9 @@
 ![Status: actively developed](https://img.shields.io/badge/status-actively%20developed-FFB000)
 [![License: not specified](https://img.shields.io/badge/license-not%20specified-lightgrey)](#license)
 
-![OpenArm right-to-left soup-can handover](media/handover.gif)
+![Showcase: furnished room, pick among clutter, pick-and-place into a bin, right-to-left handover](media/showcase.gif)
+
+▶ **[Watch the full 60 s showcase video (1280×720)](media/showcase.mp4)**: room tour, mug pick among clutter, soup can → bin, mustard-bottle handover, each with a live wrist-camera inset.
 
 > This project is actively developed. Scripted manipulation (pick, pick-and-place, handover), a verified 21-object inventory, table clutter, a configurable furnished room, episode recording, LeRobot v2.1 export and keyboard/gamepad teleoperation are working and verified; policy integration and batch evaluation come next.
 
@@ -25,6 +27,8 @@
 - **Keyboard / gamepad teleoperation** of either arm with a safe workspace clamp, hold-on-limit and automatic arm reconfiguration; teleop episodes record in the same format.
 - **LeRobot v2.1 export** with an exact-value validator: joints, gripper and EE pose for observation and action, plus three video streams.
 - The engineering trail is documented end to end in [the process log](docs/PROCESS_LOG.md), [design decisions](docs/DECISIONS.md), and [mistakes and lessons](docs/MISTAKES.md).
+
+![Soup-can handover, overhead camera](media/handover.gif)
 
 [Watch the three-camera handover video](media/handover_3cams.mp4) · overhead + right wrist + left wrist
 
@@ -219,6 +223,10 @@ $PY scenes/run_teleop.py --object mug
 # Export recorded runs to LeRobot v2.1 and validate (LeRobot environment, not Isaac Sim's Python)
 python tools/export_lerobot.py --runs artifacts/episodes/<run> --out artifacts/datasets/<name> --repo-id local/<name>
 python tools/validate_lerobot.py --dataset artifacts/datasets/<name> --runs artifacts/episodes/<run>
+
+# Presentation videos: add --showcase to run_pick / run_pick_place / run_handover (1280x720 orbit
+# camera per episode), record a room tour, then edit them into media/showcase.mp4
+$PY tools/record_room_tour.py && python tools/make_showcase_video.py
 
 # Generate a per-phase contact sheet for episode 0
 $PY tools/episode_contact_sheet.py artifacts/episodes/<run> 0
