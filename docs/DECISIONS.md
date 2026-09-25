@@ -93,3 +93,10 @@ Handover point from `tools/search_handover_point.py` (10 feasible points): can a
 **Rejected:** reorienting the can horizontally and having the left grip from above (M31–M34).
 **Why it works:** the left claws wrap the can's lower body with its center of mass inside the grip; the two hands occupy disjoint heights (right: top 3.5 cm; left: pads ±2.9 cm below that).
 **Success check:** can ≥ 5 cm above resting height, ≤ 6 cm from the LEFT fingertip point, ≥ 8 cm from the right fingertips.
+
+## D20 — LeRobot v2.1 dataset schema (2026-09-25)
+`tools/export_lerobot.py` (written by Codex from a spec, verified independently): `observation.state` [16] = right joints 1–7, right gripper, left joints 1–7, left gripper (measured); `observation.ee_pose` [14]; `action` [16] (commanded joint + gripper targets); `action.ee_pose` [14] (exact FK of the commanded joints); `observation.phase`; three video streams; task = the episode prompt; 30 fps. Only successful episodes by default. `tools/validate_lerobot.py` checks every number exactly and images within a lossy-encoding tolerance. Runs in a LeRobot environment (`lerobot==0.1.0`), not Isaac Sim's Python. First dataset: `robot_env_demo_v0`, 13 episodes / 3,135 frames.
+**pi0.5 integration is paused** by the owner's choice; the joint-space `action` makes it a direct fit later.
+
+## D21 — Teleop design (2026-09-25)
+World-frame end-effector velocity control with online IK from the previous joints, a safe workspace clamp (fingertips never below the table), hold-on-limit, and automatic reconfiguration (M35). Keyboard + Xbox-layout gamepad through `carb.input` (our own mapping, not Isaac Lab's Se3 devices, so arm switching and recording controls fit). Scripted source for tests. Recording is identical to the scripted demos (D15); `phase` = active arm (0 right, 1 left).

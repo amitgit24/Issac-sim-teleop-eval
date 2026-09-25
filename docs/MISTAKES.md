@@ -168,3 +168,24 @@ The left claws squeezed the can downward like a wedge. Moving the fingertips bel
 
 **M34 — gripping far from the center of mass.**
 With the right hand on one end, the left could only grip 4.8 cm from the can's center. When the right released, the can slid out along its axis. The whole "horizontal can" design (right reorients, left grips from above) was dropped for the upright design (D19); the old planner is kept only as a reference outside the repo.
+
+## LeRobot export and teleop (step 7, 2026-09-25)
+
+**M35 — step-by-step IK gets stuck at IK branch boundaries.**
+The first teleop test stopped at 0.235 m (LIMIT) descending onto the cube: the ready pose's IK branch
+cannot reach the table continuously (the same structure as M30, but teleop can't jump branches
+mid-motion). A lower "teleop home" reached only 16/36 tasks; a joint-centering term in the IK made it
+worse (3–4/36). Fix: automatic reconfiguration with a fingertip-clearance check along the transition.
+
+**M36 — the first teleop reach score was misleading.**
+18/36 looked like a 50 % failure rate, but it required a specific yaw everywhere; only 25/36 tasks are
+physically reachable at all, so the controller completes 18/25. Score against feasibility.
+
+**M37 — scripted operator chose an unreachable yaw.**
+The pick_cube script turned +25° (to yaw 180); at the pick center only yaw 90 is reachable for the
+cube (checked offline with the real controller). Fixed to −65°. A scripted operator must also wait
+during reconfiguration, like a person would.
+
+**M38 — LeRobot's default video decoder (torchcodec) does not load here.**
+Use `video_backend="pyav"`. Also: an image tolerance picked just above the worst observed diff (5.0
+vs 4.95) is not evidence by itself; confirmed alignment separately on high-motion frames (20/20).

@@ -10,7 +10,7 @@
 
 ![OpenArm right-to-left soup-can handover](media/handover.gif)
 
-> This project is actively developed. Scripted manipulation and native episode recording are working and verified; LeRobot export, pi0.5 integration, and batch evaluation are in progress. Teleoperation is planned.
+> This project is actively developed. Scripted manipulation, episode recording, LeRobot v2.1 export and keyboard/gamepad teleoperation are working and verified; policy integration and batch evaluation come next.
 
 ## Highlights
 
@@ -20,6 +20,8 @@
 - Video-enabled episodes contain joint positions, gripper state, end-effector pose, three synchronized camera videos, and a JSON summary.
 - The robot asset was rebuilt from URDF with convex-decomposition colliders and a rigid finger mimic; the gripper is force-limited to 3 N·m.
 - Placement was selected through a reachability search: the shoulders sit 0.40 m above the tabletop and 0.05 m behind its edge.
+- **Keyboard / gamepad teleoperation** of either arm with a safe workspace clamp, hold-on-limit and automatic arm reconfiguration; teleop episodes record in the same format.
+- **LeRobot v2.1 export** with an exact-value validator: joints, gripper and EE pose for observation and action, plus three video streams.
 - The engineering trail is documented end to end in [the process log](docs/PROCESS_LOG.md), [design decisions](docs/DECISIONS.md), and [mistakes and lessons](docs/MISTAKES.md).
 
 [Watch the three-camera handover video](media/handover_3cams.mp4) · overhead + right wrist + left wrist
@@ -33,11 +35,11 @@ Status markers in this README are literal: **✅ done and verified**, **🚧 in 
 ```mermaid
 flowchart LR
     SD["✅ Scripted demonstrations<br/>pick + handover"] --> REC["✅ Native episode recorder<br/>joints + gripper + EE pose<br/>3 cameras · 30 Hz"]
-    TEL["🗺️ Teleoperation<br/>VR / leader arm / SpaceMouse"] -. human demonstrations .-> REC
-    REC --> DATA["🚧 LeRobot v2.x export"]
-    DATA --> POL["🚧 pi0.5 integration<br/>policy server / worker"]
+    TEL["✅ Teleoperation<br/>keyboard / gamepad"] -. human demonstrations .-> REC
+    REC --> DATA["✅ LeRobot v2.1 export<br/>+ exact-value validator"]
+    DATA --> POL["🗺️ Policy integration<br/>pi0.5 server / worker"]
     POL --> SIM["✅ Shared sim control interface<br/>joint targets · EE poses via IK"]
-    SIM --> EVAL["🚧 Batch evaluation<br/>N episodes · success rate · videos"]
+    SIM --> EVAL["🗺️ Batch evaluation<br/>N episodes · success rate · videos"]
 ```
 
 The policy path is designed to drive the simulator through the same joint/end-effector interface already used by the recorder. The diagram describes the intended full architecture; it does not imply that the 🚧 or 🗺️ stages are complete.
@@ -59,6 +61,11 @@ Kinematics and hold checks:
 - Forward kinematics matches the simulator to **0.000 mm** across 40 random configurations.
 - The robot holds its ready pose to **0.0000 rad**.
 - The grippers hold their targets to **0.0 mm**.
+
+| Teleop input mapping (injected keyboard + virtual gamepad events) | **28/28** |
+| Teleop reach (offline, turn + move + descend + lift) | **18/25** physically reachable tasks |
+| Teleop cube pick (scripted operator through the live controller) | cube lifted **0.119 m**, episode exported |
+| LeRobot export of the demo runs | **13** episodes / **3,135** frames validated |
 
 Current known limits: two tested mug orientations have no reachable grasp yaw and are safely rejected; the table legs are visual only and do not yet have collision.
 
@@ -101,6 +108,23 @@ An unreachable pose is reported as `no plan` and is not executed.
 
 [`scenes/handover_planner.py`](scenes/handover_planner.py) keeps the soup can upright. The right hand picks near the top and carries it to the handover point; the left hand approaches horizontally, wraps the lower body, and closes. The right releases and lifts away before the left backs off while holding the can. Separating the two grips vertically keeps both hands clear and places the can's center of mass inside the receiving grasp.
 
+### Keyboard / gamepad teleoperation
+
+![Teleop cube pick: overhead and right-wrist views](media/teleop_pick.gif)
+
+[`scenes/run_teleop.py`](scenes/run_teleop.py) drives either gripper in the world frame. The controller integrates the operator's twist into an end-effector target, clamps it so the fingertips stay above the table, and solves IK from the current joints. At an IK branch boundary it reconfigures the arm automatically when the transition is safe, and otherwise holds and shows `LIMIT`.
+
+| Action | Keyboard | Gamepad |
+|---|---|---|
+| Move x / y / z | W S / A D / Q E | left stick / right stick up-down |
+| Yaw / pitch / roll | J L / I K / U O | right stick left-right / D-pad |
+| Gripper · switch arm | SPACE · TAB | A · B |
+| Precision · home | P · H | X · Y |
+| Record · save · discard | R · F · X | Start · Start · Back |
+| New episode | N | RB |
+
+Full details: [`docs/TELEOP.md`](docs/TELEOP.md).
+
 ### Recording format
 
 [`scenes/run_pick.py`](scenes/run_pick.py) and [`scenes/run_handover.py`](scenes/run_handover.py) write runs beneath `artifacts/episodes/<run>/`. Only successful episodes are kept by default; use `--keep-failed` to retain failures.
@@ -115,7 +139,7 @@ An unreachable pose is reported as `no plan` and is not executed.
 | `episode_XXXX_<camera>.mp4` | `cam_high`, `cam_right_wrist`, `cam_left_wrist` | 640×480, 30 fps |
 | `summary.json` | Episode outcome, object pose, plan/failure details, and run metadata | One per run |
 
-The action end-effector pose is exact FK of the commanded joint target. This joint/gripper/EE schema is the interface intended for the LeRobot and policy integrations now in progress.
+The action end-effector pose is exact FK of the commanded joint target. [`tools/export_lerobot.py`](tools/export_lerobot.py) turns runs into a LeRobot v2.1 dataset (`observation.state` / `action` = 16 joint + gripper values, `observation.ee_pose` / `action.ee_pose` = 14, three videos) and [`tools/validate_lerobot.py`](tools/validate_lerobot.py) checks every value against the source; see [`docs/LEROBOT_EXPORT.md`](docs/LEROBOT_EXPORT.md).
 
 ## Repository map
 
@@ -133,9 +157,12 @@ The action end-effector pose is exact FK of the commanded joint target. This joi
 │   ├── handover_planner.py      # coordinated right-to-left handover
 │   ├── run_pick.py              # pick episodes and recording
 │   ├── run_handover.py          # handover episodes and recording
+│   ├── run_teleop.py            # keyboard / gamepad teleop app with recording
+│   ├── teleop_controller.py     # EE velocity control, IK, clamp, reconfiguration
+│   ├── teleop_input.py          # keyboard, gamepad and scripted input sources
 │   └── robot_env_scene.py       # base-scene validation entry point
-├── tools/                       # conversion, workspace/pose searches, contact sheets
-├── tests/                       # kinematics and gripper-contact checks
+├── tools/                       # LeRobot export/validation, conversion, searches, contact sheets
+├── tests/                       # kinematics, gripper-contact and teleop checks
 ├── media/                       # showcase GIFs, videos, and phase sheets
 ├── docs/                        # process log, decisions, and mistakes
 └── third_party/openarm_description/
@@ -164,6 +191,13 @@ $PY scenes/run_pick.py --object mug --episodes 10 --no-video --trace
 # Right-to-left soup-can handover
 $PY scenes/run_handover.py --episodes 3
 
+# Teleoperation (GUI): keyboard and/or gamepad
+$PY scenes/run_teleop.py --object mug
+
+# Export recorded runs to LeRobot v2.1 and validate (LeRobot environment, not Isaac Sim's Python)
+python tools/export_lerobot.py --runs artifacts/episodes/<run> --out artifacts/datasets/<name> --repo-id local/<name>
+python tools/validate_lerobot.py --dataset artifacts/datasets/<name> --runs artifacts/episodes/<run>
+
 # Generate a per-phase contact sheet for episode 0
 $PY tools/episode_contact_sheet.py artifacts/episodes/<run> 0
 ```
@@ -173,7 +207,9 @@ Validate the base scene, kinematics, and gripper contacts:
 ```bash
 $PY scenes/robot_env_scene.py --headless --steps 120 && \
 $PY tests/check_kinematics.py && \
-$PY tests/check_gripper_contact.py
+$PY tests/check_gripper_contact.py && \
+$PY tests/check_teleop_inputs.py && \
+$PY tests/check_teleop_reach.py
 ```
 
 The converted robot asset is already committed. To regenerate it from the vendored description:

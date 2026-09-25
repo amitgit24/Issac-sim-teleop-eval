@@ -94,13 +94,17 @@ class ArmKinematics:
                 k += 1
         return pos, rot
 
-    def ik(self, pos_target, rot_target, q_seed, margin: float = 0.03, restarts: int = 20, rng_seed: int = 0):
+    def ik(self, pos_target, rot_target, q_seed, margin: float = 0.03, restarts: int = 20, rng_seed: int = 0,
+           mid_weight: float = 0.0):
         """Joint values reaching (pos_target, rot_target), kept `margin` (fraction of range) inside limits.
 
         Starts from q_seed (keeps consecutive waypoints on the same IK branch); falls back to random
-        restarts only if that fails. Returns (q, position error m, rotation error deg).
+        restarts only if that fails. mid_weight > 0 adds a secondary pull of every joint toward the
+        middle of its range (uses the arm's redundancy to stay away from limits; used by teleop).
+        Returns (q, position error m, rotation error deg).
         """
         span = self.upper - self.lower
+        mid = (self.upper + self.lower) / 2.0
         lo, hi = self.lower + margin * span, self.upper - margin * span
         pos_target, rot_target = np.asarray(pos_target, float), np.asarray(rot_target, float)
 
@@ -108,7 +112,7 @@ class ArmKinematics:
             p, r = self.fk(q)
             rot_err = Rotation.from_matrix(rot_target.T @ r).as_rotvec()
             # 1 mm position ~ 0.5 deg orientation; small pull toward the seed avoids branch jumps.
-            return np.concatenate([10.0 * (p - pos_target), 0.6 * rot_err, 0.01 * (q - q_seed)])
+            return np.concatenate([10.0 * (p - pos_target), 0.6 * rot_err, 0.01 * (q - q_seed), mid_weight * (q - mid) / span])
 
         def errors(q):
             p, r = self.fk(q)

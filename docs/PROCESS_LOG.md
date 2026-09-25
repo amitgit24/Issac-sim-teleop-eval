@@ -83,8 +83,17 @@ Goal: position-based pick with the right arm, simple object first, then househol
 3. Traced run: symmetric left contact (0.32/0.36). The can drops only 9 mm as the right releases, and the left carries it away.
 4. Verified: 10/10 (seed 20, no video) + 3/3 with video (`artifacts/episodes/video_handover`). Final regression: scene check, `tests/check_kinematics.py` and `tests/check_gripper_contact.py` all pass.
 
+## Step 7 — LeRobot export and keyboard/gamepad teleop (2026-09-25)
+
+1. pi0.5 integration paused (owner's call). LeRobot export delegated to Codex (high reasoning) with a written spec: `tools/export_lerobot.py`, `tools/validate_lerobot.py`, `docs/LEROBOT_EXPORT.md`. Verified independently: 13 episodes / 3,135 frames validate, and frame alignment holds on high-motion frames (20/20 on both cameras). Default decoder issue noted (M38).
+2. Teleop built: `scenes/teleop_input.py` (keyboard, gamepad, scripted), `scenes/teleop_controller.py` (EE velocity control + IK + clamp + hold), `scenes/run_teleop.py` (GUI app, status line, R/F/X recording). Controls in `docs/TELEOP.md` (D21).
+3. First scripted test stopped at a branch boundary (M35). Tried a lower teleop home (16/36) and IK joint-centering (worse), then added automatic reconfiguration. Offline reach test: 18 of the 25 physically reachable tasks (M36).
+4. Fixed the scripted operator's yaw (M37). In sim: turn −65°, descend with one automatic reconfiguration, grasp, lift the cube 0.119 m; the episode exports and validates in LeRobot format.
+5. Input test with injected carb events: 28/28 (keyboard + virtual gamepad). GUI launch on a display with live input: clean. No human operator session recorded yet.
+
 ## Next (not started)
 
-- Larger data collection runs (only successful episodes are kept by default), then LeRobot conversion for pi0.5. The recorded format is `docs/DECISIONS.md` D15.
+- Record human teleop demos; larger scripted data collection; export with `tools/export_lerobot.py`.
+- pi0.5 integration (paused) and the evaluation harness.
 - Mug: 2/10 orientations have no reachable grasp yaw; a tilted grasp or a second pick zone could cover them.
 - Table legs still have no collision (D4).
