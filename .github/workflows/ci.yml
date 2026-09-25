@@ -1,0 +1,24 @@
+name: ci
+
+# Runs everywhere without a GPU: static checks + the pure-Python unit tests (kinematics, gripper
+# model, pick / place / handover planners, teleop safety, clutter layout, inventory consistency).
+# The Isaac Sim integration checks (tests/check_*.py, scenes/run_*.py) need Isaac Sim + an RTX GPU
+# and are run locally; their results are recorded in docs/PROCESS_LOG.md.
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install numpy scipy pytest ruff
+      - name: Static checks (syntax errors, undefined names)
+        run: ruff check --select E9,F63,F7,F82 --exclude third_party .
+      - name: Unit tests
+        run: pytest tests/unit -q

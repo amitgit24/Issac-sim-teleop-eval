@@ -8,3 +8,6 @@ __pycache__/
 *.pyc
 # Local reference material
 wooden_table.jpg
+# Local test environments
+.venv/
+.pytest_cache/
