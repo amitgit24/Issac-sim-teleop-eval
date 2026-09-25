@@ -2,6 +2,9 @@
 
 **Bimanual OpenArm manipulation in Isaac Sim: reproducible position-based picks, right-to-left handover, and multimodal demonstration recording—built toward teleoperation, policy training, and automated evaluation.**
 
+*Built by **Amit Jain** ([@amitgit24](https://github.com/amitgit24)) · [How I built it: engineering notes and case studies](docs/ENGINEERING.md)*
+
+[![ci](https://github.com/amitgit24/Issac-sim-teleop-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/amitgit24/Issac-sim-teleop-eval/actions/workflows/ci.yml)
 [![Isaac Sim 5.1](https://img.shields.io/badge/Isaac%20Sim-5.1-76B900?logo=nvidia&logoColor=white)](https://developer.nvidia.com/isaac/sim)
 [![Isaac Lab 0.47](https://img.shields.io/badge/Isaac%20Lab-0.47-76B900)](https://isaac-sim.github.io/IsaacLab/)
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
@@ -11,6 +14,22 @@
 ![Showcase: furnished room, pick among clutter, pick-and-place into a bin, right-to-left handover](media/showcase.gif)
 
 ▶ **[Watch the full 60 s showcase video (1280×720)](media/showcase.mp4)**: room tour, mug pick among clutter, soup can → bin, mustard-bottle handover, each with a live wrist-camera inset.
+
+## About this project
+
+I built this as a standalone robotics simulation stack for a bimanual OpenArm robot: the scene,
+the robot model, the motion planners, teleoperation, data recording and dataset export. It started
+from an earlier OpenArm prototype of mine whose scripted pick worked 12.5 % of the time. Instead of
+tuning it, I measured everything it assumed (gripper geometry, collision shapes, joint coupling,
+reachable workspace, asset units) and rebuilt the parts that were wrong. The result is **10/10 picks**
+on the core objects, **zero executed grasp failures** across the object inventory, and a working
+two-arm handover.
+
+What I'd point a reviewer to:
+- **[Engineering notes](docs/ENGINEERING.md):** how I work, plus six case studies (problem → root cause → fix → measured result).
+- **[Mistakes and lessons](docs/MISTAKES.md):** 44 documented issues, including real bugs in common OpenArm / Isaac Sim setups.
+- **[Design decisions](docs/DECISIONS.md):** 26 decisions with the alternatives I rejected and why.
+- **[Process log](docs/PROCESS_LOG.md):** every step, in order.
 
 > This project is actively developed. Scripted manipulation (pick, pick-and-place, handover), a verified 21-object inventory, table clutter, a configurable furnished room, episode recording, LeRobot v2.1 export and keyboard/gamepad teleoperation are working and verified; policy integration and batch evaluation come next.
 
@@ -259,6 +278,12 @@ The full catalog contains 34 documented mistakes. A few that materially changed 
 - **Constrain IK only as much as the task requires.** Unnecessary yaw/roll constraints made reachable ready and handover poses appear impossible; workspace sweeps exposed the useful solution families.
 
 See [`docs/MISTAKES.md`](docs/MISTAKES.md) for symptoms, root causes, fixes, and reusable lessons.
+
+## Author
+
+**Amit Jain** · GitHub [@amitgit24](https://github.com/amitgit24). I design and build robot-learning
+infrastructure: simulation environments, motion planning, teleoperation, and the data and
+evaluation pipelines that connect them. Questions and feedback are welcome through GitHub issues.
 
 ## Acknowledgements
 
