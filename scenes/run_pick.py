@@ -21,6 +21,8 @@ parser.add_argument("--run-name", default="")
 parser.add_argument("--no-video", action="store_true", help="skip cameras (fast planner/physics check)")
 parser.add_argument("--keep-failed", action="store_true", help="also keep data of failed episodes")
 parser.add_argument("--trace", action="store_true", help="print object tilt/offset and fingertip height every 6 steps")
+parser.add_argument("--room", choices=("none", "walls", "full"), default="none")
+parser.add_argument("--clutter", type=int, default=0, help="number of inventory clutter items on the table")
 args = parser.parse_args()
 
 from isaacsim import SimulationApp
@@ -28,6 +30,7 @@ from isaacsim import SimulationApp
 simulation_app = SimulationApp({"headless": True})
 
 import env_common as E  # noqa: E402  (first isaaclab-related import: sets the asset root)
+from room import add_room  # noqa: E402
 
 if not args.no_video:
     E.enable_headless_cameras()
@@ -42,6 +45,7 @@ import torch  # noqa: E402
 import isaaclab.sim as sim_utils  # noqa: E402
 from isaaclab.scene import InteractiveScene  # noqa: E402
 
+import clutter as CL  # noqa: E402
 import pick_task as T  # noqa: E402
 from kinematics import tip_depth  # noqa: E402
 from pick_planner import grasp_direction, plan_pick  # noqa: E402
@@ -63,6 +67,10 @@ def trace_tilt(q_wxyz, base_wxyz) -> float:
 def main():
     obj = T.OBJECTS[args.object]
     cfg = T.make_scene_cfg(obj)
+    add_room(cfg, args.room)
+    clutter_rng = np.random.default_rng(args.seed + 1000)
+    clutter_items = CL.choose_items(clutter_rng, args.clutter, exclude_names=(args.object,)) if args.clutter else []
+    CL.add_clutter_to_cfg(cfg, clutter_items)
     if args.no_video:
         for cam in T.CAMERAS:
             setattr(cfg, cam, None)
@@ -86,6 +94,13 @@ def main():
 
     for ep in range(args.episodes):
         info = T.reset_episode(sim, scene, arms, obj, rng)
+        if clutter_items:
+            info["clutter_placed"] = CL.place_clutter(scene, clutter_items, clutter_rng)
+            for _ in range(20):  # let the clutter settle before planning
+                robot.set_joint_position_target(robot.data.default_joint_pos)
+                scene.write_data_to_sim()
+                sim.step(render=False)
+                scene.update(dt)
         if not args.no_video:
             # RTX output lags the physics state by a frame or two: render a few times so the first
             # recorded frame shows this episode, not a blank or stale buffer.
