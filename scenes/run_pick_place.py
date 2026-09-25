@@ -24,6 +24,7 @@ parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--clutter", type=int, default=0, help="number of clutter items on the table")
 parser.add_argument("--room", default="none")
 parser.add_argument("--run-name", default="")
+parser.add_argument("--showcase", action="store_true", help="also record a 1280x720 orbiting presentation video per episode")
 parser.add_argument("--no-video", action="store_true")
 parser.add_argument("--keep-failed", action="store_true")
 args = parser.parse_args()
@@ -80,6 +81,8 @@ def main():
     if args.no_video:
         for cam in T.CAMERAS:
             setattr(cfg, cam, None)
+    if args.showcase:
+        cfg.showcase = T.showcase_camera_cfg()
     sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(dt=1.0 / T.FPS_SIM, device="cuda:0"))
     sim.set_camera_view(eye=T.HIGH_CAM_EYE, target=T.HIGH_CAM_TARGET)
     scene = InteractiveScene(cfg)
@@ -140,6 +143,7 @@ def main():
         step = 0
         total_steps = sum(len(sg.arm_q) for sg in segs)
         pos_1s_before_end = None
+        show_frames, show_total = [], sum(len(sg.arm_q) for sg in segs)
         for seg_i, seg in enumerate(segs):
             for arm_q, f_q in zip(seg.arm_q, seg.finger_q):
                 if step % T.RECORD_EVERY == 0:
@@ -155,6 +159,9 @@ def main():
                     if frames is not None:
                         for c in T.CAMERAS:
                             frames[c].append(scene[c].data.output["rgb"][0, ..., :3].cpu().numpy())
+                    if args.showcase:
+                        T.set_showcase_view(scene, step / max(1, show_total))
+                        show_frames.append(scene["showcase"].data.output["rgb"][0, ..., :3].cpu().numpy())
                 target[0, arms.arm_ids[SIDE]] = torch.tensor(arm_q, dtype=target.dtype, device=target.device)
                 target[0, arms.finger_ids[SIDE][0]] = float(f_q)
                 robot.set_joint_position_target(target)
@@ -191,6 +198,9 @@ def main():
             if frames is not None:
                 for c in T.CAMERAS:
                     imageio.mimwrite(out_dir / f"episode_{ep:04d}_{c}.mp4", frames[c], fps=T.FPS_SIM // T.RECORD_EVERY, quality=8, macro_block_size=1)
+            if args.showcase and show_frames:
+                imageio.mimwrite(out_dir / f"episode_{ep:04d}_showcase.mp4", show_frames, fps=T.FPS_SIM // T.RECORD_EVERY,
+                                 quality=9, macro_block_size=1)
             rec["saved"] = True
         summary.append(rec)
     n_ok = sum(r.get("success", False) for r in summary)

@@ -18,6 +18,7 @@ parser.add_argument("--object", default="cube")
 parser.add_argument("--episodes", type=int, default=5)
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--run-name", default="")
+parser.add_argument("--showcase", action="store_true", help="also record a 1280x720 orbiting presentation video per episode")
 parser.add_argument("--no-video", action="store_true", help="skip cameras (fast planner/physics check)")
 parser.add_argument("--keep-failed", action="store_true", help="also keep data of failed episodes")
 parser.add_argument("--trace", action="store_true", help="print object tilt/offset and fingertip height every 6 steps")
@@ -74,6 +75,8 @@ def main():
     if args.no_video:
         for cam in T.CAMERAS:
             setattr(cfg, cam, None)
+    if args.showcase:
+        cfg.showcase = T.showcase_camera_cfg()
     sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(dt=1.0 / T.FPS_SIM, device="cuda:0"))
     sim.set_camera_view(eye=T.HIGH_CAM_EYE, target=T.HIGH_CAM_TARGET)
     scene = InteractiveScene(cfg)
@@ -133,6 +136,7 @@ def main():
             "act_left_joint_pos", "act_left_gripper", "act_left_ee_pose", "phase")}
         phase_names = [s.name for s in plan.segments]
         max_track_err, step = 0.0, 0
+        show_frames, show_total = [], sum(len(sg.arm_q) for sg in plan.segments)
         for seg_i, seg in enumerate(plan.segments):
             for arm_q, f_q in zip(seg.arm_q, seg.finger_q):
                 record = step % T.RECORD_EVERY == 0
@@ -152,6 +156,9 @@ def main():
                     if frames is not None:
                         for c in T.CAMERAS:
                             frames[c].append(scene[c].data.output["rgb"][0, ..., :3].cpu().numpy())
+                    if args.showcase:
+                        T.set_showcase_view(scene, step / max(1, show_total))
+                        show_frames.append(scene["showcase"].data.output["rgb"][0, ..., :3].cpu().numpy())
                 t = torch.tensor(arm_q, dtype=target.dtype, device=target.device)
                 target[0, arms.arm_ids[SIDE]] = t
                 target[0, arms.finger_ids[SIDE]] = float(f_q)
@@ -191,6 +198,9 @@ def main():
             if frames is not None:
                 for c in T.CAMERAS:
                     imageio.mimwrite(out_dir / f"episode_{ep:04d}_{c}.mp4", frames[c], fps=T.FPS_SIM // T.RECORD_EVERY, quality=8, macro_block_size=1)
+            if args.showcase and show_frames:
+                imageio.mimwrite(out_dir / f"episode_{ep:04d}_showcase.mp4", show_frames, fps=T.FPS_SIM // T.RECORD_EVERY,
+                                 quality=9, macro_block_size=1)
             rec["saved"] = True
         summary.append(rec)
 

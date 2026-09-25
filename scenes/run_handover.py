@@ -17,6 +17,7 @@ parser.add_argument("--episodes", type=int, default=3)
 parser.add_argument("--object", default="soup_can", help="any upright pick_task object tall enough for the side-wrap")
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--run-name", default="")
+parser.add_argument("--showcase", action="store_true", help="also record a 1280x720 orbiting presentation video per episode")
 parser.add_argument("--no-video", action="store_true")
 parser.add_argument("--keep-failed", action="store_true")
 parser.add_argument("--trace", action="store_true")
@@ -71,6 +72,11 @@ def main():
     if args.no_video:
         for cam in T.CAMERAS:
             setattr(cfg, cam, None)
+    if args.showcase:
+        cfg.showcase = T.showcase_camera_cfg()
+        # the handover happens high and close to the robot: orbit closer, centered on the handover point
+        T.SHOWCASE_TARGET = (E.TABLE_NEAR_X + args.inset, args.y, E.TABLE_HEIGHT + args.height - 0.20)
+        T.SHOWCASE_RADIUS, T.SHOWCASE_HEIGHT = 1.25, E.TABLE_HEIGHT + args.height + 0.05
     sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(dt=1.0 / T.FPS_SIM, device="cuda:0"))
     sim.set_camera_view(eye=T.HIGH_CAM_EYE, target=T.HIGH_CAM_TARGET)
     scene = InteractiveScene(cfg)
@@ -115,6 +121,7 @@ def main():
         data = {f"{k}_{s}_{f}": [] for k in ("obs", "act") for s in ("right", "left") for f in KEYS}
         data["phase"] = []
         step = 0
+        show_frames, show_total = [], sum(len(sg[1]) for sg in segments)
         for seg_i, (name, qr, fr, ql, fl) in enumerate(segments):
             for i in range(len(qr)):
                 if step % T.RECORD_EVERY == 0:
@@ -130,6 +137,9 @@ def main():
                     if frames is not None:
                         for c in T.CAMERAS:
                             frames[c].append(scene[c].data.output["rgb"][0, ..., :3].cpu().numpy())
+                    if args.showcase:
+                        T.set_showcase_view(scene, step / max(1, show_total))
+                        show_frames.append(scene["showcase"].data.output["rgb"][0, ..., :3].cpu().numpy())
                 for s, q, f in (("right", qr[i], fr[i]), ("left", ql[i], fl[i])):
                     target[0, arms.arm_ids[s]] = torch.tensor(q, dtype=target.dtype, device=target.device)
                     target[0, arms.finger_ids[s]] = float(f)
@@ -164,6 +174,9 @@ def main():
                 for c in T.CAMERAS:
                     imageio.mimwrite(out_dir / f"episode_{ep:04d}_{c}.mp4", frames[c], fps=T.FPS_SIM // T.RECORD_EVERY,
                                      quality=8, macro_block_size=1)
+            if args.showcase and show_frames:
+                imageio.mimwrite(out_dir / f"episode_{ep:04d}_showcase.mp4", show_frames, fps=T.FPS_SIM // T.RECORD_EVERY,
+                                 quality=9, macro_block_size=1)
             rec["saved"] = True
         summary.append(rec)
 

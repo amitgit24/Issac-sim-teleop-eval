@@ -278,3 +278,26 @@ def check_success(scene, arms: Arms, obj: ObjectSpec, side: str, min_lift: float
     lateral = float(np.linalg.norm(obj_p[:2] - ee_p[:2]))
     ok = bool(lift >= min_lift and lateral < 0.03)
     return {"success": ok, "lift": float(lift), "lateral_offset": lateral}
+
+
+# --- Showcase camera (presentation video only; not part of the recorded dataset) --------------
+SHOWCASE_TARGET = (-0.22, -0.10, 0.86)  # between the robot's hands, just above the tabletop
+SHOWCASE_RADIUS, SHOWCASE_HEIGHT = 1.75, 1.45
+SHOWCASE_ARC_DEG = (-38.0, 38.0)  # slow orbit on the room side of the table, facing the robot
+
+
+def showcase_camera_cfg() -> CameraCfg:
+    return CameraCfg(
+        prim_path="/World/ShowcaseCam", update_period=0, height=720, width=1280, data_types=["rgb"],
+        spawn=sim_utils.PinholeCameraCfg(focal_length=16.0, clipping_range=(0.05, 30.0)),
+    )
+
+
+def set_showcase_view(scene, progress: float):
+    """Place the showcase camera on its orbit; progress 0..1 over the episode."""
+    a0, a1 = SHOWCASE_ARC_DEG
+    th = math.radians(a0 + (a1 - a0) * min(max(progress, 0.0), 1.0))
+    tx, ty, tz = SHOWCASE_TARGET
+    eye = (tx + SHOWCASE_RADIUS * math.cos(th), ty + SHOWCASE_RADIUS * math.sin(th), SHOWCASE_HEIGHT)
+    cam = scene["showcase"]
+    cam.set_world_poses_from_view(eyes=torch.tensor([eye], device=cam.device), targets=torch.tensor([SHOWCASE_TARGET], device=cam.device))
