@@ -41,6 +41,8 @@ class ObjectSpec:
     grasp_axis_local: tuple = (1.0, 0.0, 0.0)
     # orientation that makes the object stand upright (wxyz); the random yaw is applied on top
     base_rot: tuple = (1.0, 0.0, 0.0, 0.0)
+    # object-local direction of a handle, if any (mugs); the handover keeps it away from the left hand
+    handle_axis_local: tuple | None = None
 
 
 # YCB "Axis_Aligned" assets are Y-up (lying on their side in Isaac's Z-up world, measured):
@@ -108,6 +110,7 @@ OBJECTS = {
         prompt="pick up the mug",
         grasp_axis_local=(0.0, 0.0, 1.0),
         base_rot=YCB_UPRIGHT,
+        handle_axis_local=(1.0, 0.0, 0.0),
     ),
 }
 
@@ -128,6 +131,7 @@ def _inventory_objects():
             prompt=f"pick up the {it.name.replace('_', ' ')}",
             grasp_axis_local=it.grasp_axis_local,
             base_rot=it.rest_rot,
+            handle_axis_local=it.handle_axis_local,
         )
     return out
 
@@ -300,4 +304,5 @@ def set_showcase_view(scene, progress: float):
     tx, ty, tz = SHOWCASE_TARGET
     eye = (tx + SHOWCASE_RADIUS * math.cos(th), ty + SHOWCASE_RADIUS * math.sin(th), SHOWCASE_HEIGHT)
     cam = scene["showcase"]
-    cam.set_world_poses_from_view(eyes=torch.tensor([eye], device=cam.device), targets=torch.tensor([SHOWCASE_TARGET], device=cam.device))
+    as_t = lambda v: torch.tensor([[float(c) for c in v]], dtype=torch.float32, device=cam.device)  # noqa: E731  (float32: M48)
+    cam.set_world_poses_from_view(eyes=as_t(eye), targets=as_t(SHOWCASE_TARGET))

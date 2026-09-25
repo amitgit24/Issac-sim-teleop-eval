@@ -44,6 +44,7 @@ class InventoryItem:
     grasp_axis_local: tuple = (1.0, 0.0, 0.0)
     yaw_symmetry: float = 3.141592653589793
     yaw_tolerance: float = 0.0  # rad off the exact grasp axis still acceptable (mugs: body grasp away from the handle)
+    handle_axis_local: tuple | None = None  # object-local handle direction (mugs), used by the handover
     pick_verified: str = ""
 
     def spawn_cfg(self):
@@ -72,10 +73,10 @@ ITEMS = [
     InventoryItem("ycb_pitcher", "kitchenware", _obj("ycb_pitcher"), 0.178, YCB_UPRIGHT, ("clutter",), _YCB + "/019_pitcher_base"),
     InventoryItem("ycb_mug", "kitchenware", "assets/objects/ycb_mug_physics.usd", 0.25, YCB_UPRIGHT, ("clutter", "pick"), _YCB + "/025_mug",
                   notes="pick verified 8/10 in pick_task (2 orientations have no reachable grasp)", pick_verified="pick 8/10 (2 no-plan) as pick_task 'mug'"),
-    InventoryItem("mug_a2", "kitchenware", _obj("mug_a2"), 0.30, IDENTITY, ("clutter", "pick", "handover"), _MUGS + "/SM_Mug_A2", grasp_width=0.092, yaw_tolerance=0.61, pick_verified="pick 9/10 (1 no-plan, 0 grasp failures); handover 4/5 (mug_c1 tested)"),
-    InventoryItem("mug_b1", "kitchenware", _obj("mug_b1"), 0.30, IDENTITY, ("clutter", "pick", "handover"), _MUGS + "/SM_Mug_B1", grasp_width=0.092, yaw_tolerance=0.61, pick_verified="pick 9/10 (1 no-plan, 0 grasp failures)"),
-    InventoryItem("mug_c1", "kitchenware", _obj("mug_c1"), 0.32, IDENTITY, ("clutter", "pick", "handover"), _MUGS + "/SM_Mug_C1", grasp_width=0.089, yaw_tolerance=0.61, pick_verified="pick 9/10 (1 no-plan, 0 grasp failures); handover 4/5"),
-    InventoryItem("mug_d1", "kitchenware", _obj("mug_d1"), 0.32, IDENTITY, ("clutter", "pick", "handover"), _MUGS + "/SM_Mug_D1", grasp_width=0.089, yaw_tolerance=0.61, pick_verified="pick 9/10 (1 no-plan, 0 grasp failures)"),
+    InventoryItem("mug_a2", "kitchenware", _obj("mug_a2"), 0.30, IDENTITY, ("clutter", "pick", "handover"), _MUGS + "/SM_Mug_A2", grasp_width=0.092, yaw_tolerance=0.61, pick_verified="pick 9/10 (1 no-plan, 0 grasp failures); handover 5/5 (mug_c1 tested)", handle_axis_local=(0.0, 1.0, 0.0)),
+    InventoryItem("mug_b1", "kitchenware", _obj("mug_b1"), 0.30, IDENTITY, ("clutter", "pick", "handover"), _MUGS + "/SM_Mug_B1", grasp_width=0.092, yaw_tolerance=0.61, pick_verified="pick 9/10 (1 no-plan, 0 grasp failures)", handle_axis_local=(0.0, 1.0, 0.0)),
+    InventoryItem("mug_c1", "kitchenware", _obj("mug_c1"), 0.32, IDENTITY, ("clutter", "pick", "handover"), _MUGS + "/SM_Mug_C1", grasp_width=0.089, yaw_tolerance=0.61, pick_verified="pick 9/10 (1 no-plan, 0 grasp failures); handover 5/5; handover to bin 10/10", handle_axis_local=(0.0, 1.0, 0.0)),
+    InventoryItem("mug_d1", "kitchenware", _obj("mug_d1"), 0.32, IDENTITY, ("clutter", "pick", "handover"), _MUGS + "/SM_Mug_D1", grasp_width=0.089, yaw_tolerance=0.61, pick_verified="pick 9/10 (1 no-plan, 0 grasp failures)", handle_axis_local=(0.0, 1.0, 0.0)),
     InventoryItem("glass_short", "kitchenware", _obj("glass_short"), 0.20, IDENTITY, ("clutter", "pick", "handover"), _AV + "/Dinnerware/P_Glassware_Short", grasp_width=0.081, yaw_symmetry=0.5236, pick_verified="pick 10/10; handover 5/5"),
     InventoryItem("glass_tall", "kitchenware", _obj("glass_tall"), 0.25, IDENTITY, ("clutter", "pick", "handover"), _AV + "/Dinnerware/P_Glassware_Tall", grasp_width=0.083, yaw_symmetry=0.5236, pick_verified="pick 10/10; handover 5/5"),
     InventoryItem("grey_bowl", "kitchenware", _obj("grey_bowl"), 0.15, IDENTITY, ("clutter", "pick"), _AV + "/Serving/grey_bowl", grasp_width=0.076, grasp_axis_local=(0.0, 1.0, 0.0), yaw_tolerance=0.61, pick_verified="pick 10/10"),

@@ -75,3 +75,43 @@ def test_handover_plan(kin):
     assert why == "ok"
     names = [s[0] for s in segs]
     assert names.index("left_close") < names.index("right_release") < names.index("left_backoff")
+
+
+def test_handover_then_place_into_bin(kin):
+    from transfer_planner import plan_handover_place
+
+    hp = HandoverPoint(x=L.TABLE_NEAR_X + 0.12 - BASE[0], y=-0.04, z=L.TABLE_HEIGHT + 0.36 - BASE[2])
+    bin_xy = (L.TABLE_NEAR_X + 0.40 - BASE[0], 0.24 - BASE[1])
+    segs, why = plan_handover_place(kin["right"], kin["left"], np.array(L.READY_RIGHT_ARM), -FINGER_Q_MAX,
+                                    np.array(L.READY_LEFT_ARM), FINGER_Q_MAX, obj_at_pick_center(CAN), TABLE_Z, CAN, hp,
+                                    bin_xy, TABLE_Z + 0.1464, dt=DT)
+    assert why == "ok"
+    names = [s[0] for s in segs]
+    assert names.index("right_release") < names.index("left_carry") < names.index("left_release") < names.index("left_return")
+    # the left arm moves smoothly through the whole task
+    assert np.max(np.abs(np.diff(np.concatenate([s[3] for s in segs]), axis=0))) < 0.08
+
+
+def test_handover_turns_a_mug_handle_away_from_the_left_hand(kin):
+    import math as m
+
+    from handover_planner import HANDLE_AWAY_MIN
+
+    mug = GraspSpec(width=0.089, yaw_symmetry=m.pi, height=0.1072, yaw_tolerance=0.61)
+    hp = HandoverPoint(x=L.TABLE_NEAR_X + 0.12 - BASE[0], y=-0.04, z=L.TABLE_HEIGHT + 0.36 - BASE[2])
+    q_obj = (m.cos(0.3), 0.0, 0.0, m.sin(0.3))  # mug yawed 0.6 rad; handle along its local +y
+    segs, why = plan_handover(kin["right"], kin["left"], np.array(L.READY_RIGHT_ARM), -FINGER_Q_MAX, np.array(L.READY_LEFT_ARM),
+                              FINGER_Q_MAX, obj_at_pick_center(mug), TABLE_Z, mug, hp, dt=DT,
+                              grasp_dir=grasp_direction(q_obj, (1.0, 0.0, 0.0)), obj_quat=q_obj, handle_axis_local=(0.0, 1.0, 0.0))
+    assert why == "ok"
+    names = [s[0] for s in segs]
+    k = kin["right"]
+    _, r_grasp = k.fk(segs[names.index("right_descend")][1][-1])
+    _, r_hand = k.fk(segs[names.index("right_transfer")][1][-1])
+    from scipy.spatial.transform import Rotation
+
+    h_world = Rotation.from_quat([0.0, 0.0, m.sin(0.3), m.cos(0.3)]).apply([0.0, 1.0, 0.0])
+    h_at_handover = r_hand @ (r_grasp.T @ h_world)
+    # handle points away from the incoming left hand (the planner checks the nominal pose; the executed
+    # IK pose is within 0.5 deg of it, hence the small tolerance)
+    assert h_at_handover[1] <= -HANDLE_AWAY_MIN + 0.01

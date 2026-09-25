@@ -108,6 +108,7 @@ def main():
             arms.kin["right"], arms.kin["left"], st["right"]["joint_pos"], st["right"]["gripper"],
             st["left"]["joint_pos"], st["left"]["gripper"], obj_p, E.TABLE_HEIGHT - base[2], obj.grasp, hp, dt=dt,
             grasp_dir=grasp_direction(obj_q, obj.grasp_axis_local),
+            obj_quat=obj_q, handle_axis_local=obj.handle_axis_local,
         )
         rec = {"episode": ep, **info, "object_pos_root": obj_p.tolist()}
         if segments is None:

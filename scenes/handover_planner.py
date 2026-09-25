@@ -59,7 +59,11 @@ def _joint_move_clear(kin, q0, q1, min_z):
     return True
 
 
-def plan_handover(kin_r, kin_l, q_r0, f_r0, q_l0, f_l0, obj_pos, table_z, spec, hp, dt=1.0 / 60.0, grasp_dir=None):
+HANDLE_AWAY_MIN = 0.5  # handle must point at least this much toward -y (away from the incoming left hand)
+
+
+def plan_handover(kin_r, kin_l, q_r0, f_r0, q_l0, f_l0, obj_pos, table_z, spec, hp, dt=1.0 / 60.0, grasp_dir=None,
+                  obj_quat=None, handle_axis_local=None):
     """Full two-arm plan. Returns (segments, reason). Segment = (name, qr, fr, ql, fl) per control step."""
     sec = lambda t: max(2, int(round(t / dt)))  # noqa: E731
 
@@ -71,6 +75,15 @@ def plan_handover(kin_r, kin_l, q_r0, f_r0, q_l0, f_l0, obj_pos, table_z, spec, 
         return None, "right pick not reachable"
     right_segs = [s for s in pick.segments if s.name != "hold"]
     q_lift, f_closed = right_segs[-1].arm_q[-1], right_segs[-1].finger_q[-1]
+    # Objects with a handle (mugs): the handle must not point into the left hand's approach (+y side)
+    # or along its closing axis, or the claws hit it and push the object (docs/MISTAKES.md M47). Track
+    # the handle in the right gripper's frame (fixed once grasped) and constrain the handover yaw.
+    handle_g = None
+    if handle_axis_local is not None and obj_quat is not None:
+        w, x, y, z = obj_quat
+        h_world = Rotation.from_quat([x, y, z, w]).apply(np.asarray(handle_axis_local, float))
+        _, r_grasp = kin_r.fk(right_segs[1].arm_q[-1])  # end of the descent = grasp pose
+        handle_g = r_grasp.T @ h_world
 
     # 2. right carries the upright can to the handover point (fingers stay down; yaw is free)
     ee_min_z = table_z + RIGHT_CAN_BOTTOM_CLEARANCE + spec.height - FINGER_POCKET_DEPTH + tip_depth(RIGHT_CLOSED_ON_CAN)
@@ -80,6 +93,8 @@ def plan_handover(kin_r, kin_l, q_r0, f_r0, q_l0, f_l0, obj_pos, table_z, spec, 
     q_hr, best = None, None
     for yaw in np.radians(np.arange(0, 360, 30)):
         for seed in [q_lift, *_seeds(kin_r, q_lift)[1:]]:
+            if handle_g is not None and (down_rotation(yaw) @ handle_g)[1] > -HANDLE_AWAY_MIN:
+                break  # this yaw would turn the handle toward the left hand
             q, pe, re = kin_r.ik(target, down_rotation(yaw), seed, restarts=0)
             if pe < 1e-3 and re < 0.5 and _joint_move_clear(kin_r, q_lift, q, ee_min_z - 0.01):
                 travel = np.sum(np.abs(q - q_lift))
@@ -87,7 +102,7 @@ def plan_handover(kin_r, kin_l, q_r0, f_r0, q_l0, f_l0, obj_pos, table_z, spec, 
                     q_hr, best = q, travel
                 break
     if q_hr is None:
-        return None, "right handover pose not reachable"
+        return None, "right handover pose not reachable" + (" with the handle turned away" if handle_g is not None else "")
     n = sec(2.5)
     right_segs.append(Segment("transfer", _joint_move(q_lift, q_hr, n), np.full(n, f_closed)))
 
