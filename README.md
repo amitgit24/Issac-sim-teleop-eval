@@ -60,6 +60,8 @@ Kinematics and hold checks:
 - The robot holds its ready pose to **0.0000 rad**.
 - The grippers hold their targets to **0.0 mm**.
 
+Current known limits: two tested mug orientations have no reachable grasp yaw and are safely rejected; the table legs are visual only and do not yet have collision.
+
 ## How it works
 
 ### Scene and robot
@@ -179,22 +181,6 @@ The converted robot asset is already committed. To regenerate it from the vendor
 ```bash
 $PY tools/convert_openarm_urdf.py
 ```
-
-## Roadmap
-
-- [x] Isaac Sim scene, bimanual OpenArm asset, measured gripper model, and startup checks
-- [x] Scripted cube and household-object picks
-- [x] Scripted right-to-left soup-can handover
-- [x] Joint, gripper, end-effector, and three-camera episode recording
-- [ ] **🚧 In progress:** LeRobot v2.x dataset export for recorded episodes
-- [ ] **🚧 In progress:** pi0.5 policy server/worker integration through the existing joint/EE interface
-- [ ] **🚧 In progress:** batch evaluation harness with N-episode runs, success rate, and rollout videos
-- [ ] **🗺️ Planned:** teleoperation with VR, a leader arm, or SpaceMouse for human demonstrations
-- [ ] **🗺️ Planned:** more objects and tasks
-- [ ] **🗺️ Planned:** domain randomization
-- [ ] **🗺️ Planned:** ROS 2 bridge
-
-Current known limits: two tested mug orientations have no reachable grasp yaw and are safely rejected; the table legs are visual only and do not yet have collision.
 
 ## Lessons learned
 
