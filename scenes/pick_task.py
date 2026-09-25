@@ -112,6 +112,30 @@ OBJECTS = {
 }
 
 
+def _inventory_objects():
+    """ObjectSpecs for every verified inventory item with a grasp (scenes/inventory.py, roles pick/handover)."""
+    import inventory as INV
+
+    out = {}
+    for it in INV.ITEMS:
+        if not (it.verified and it.grasp_width > 0 and it.size_m):
+            continue
+        out[it.name] = ObjectSpec(
+            name=it.name,
+            spawn=it.spawn_cfg(),
+            rest_z=it.rest_root_z,
+            grasp=GraspSpec(width=it.grasp_width, yaw_symmetry=it.yaw_symmetry, height=it.size_m[2], yaw_tolerance=it.yaw_tolerance),
+            prompt=f"pick up the {it.name.replace('_', ' ')}",
+            grasp_axis_local=it.grasp_axis_local,
+            base_rot=it.rest_rot,
+        )
+    return out
+
+
+# inventory items join the catalog under their inventory names (the original four keep theirs)
+OBJECTS.update({k: v for k, v in _inventory_objects().items() if k not in OBJECTS})
+
+
 WRIST_CAM_POS = (-0.10, 0.0, -0.08)  # gripper frame; below the housing, outside it on the -x side
 WRIST_CAM_AIM = (0.0, 0.0, -0.16)  # fingertip point the optical axis passes through
 

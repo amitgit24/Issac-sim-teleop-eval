@@ -59,12 +59,14 @@ def _joint_move_clear(kin, q0, q1, min_z):
     return True
 
 
-def plan_handover(kin_r, kin_l, q_r0, f_r0, q_l0, f_l0, obj_pos, table_z, spec, hp, dt=1.0 / 60.0):
+def plan_handover(kin_r, kin_l, q_r0, f_r0, q_l0, f_l0, obj_pos, table_z, spec, hp, dt=1.0 / 60.0, grasp_dir=None):
     """Full two-arm plan. Returns (segments, reason). Segment = (name, qr, fr, ql, fl) per control step."""
     sec = lambda t: max(2, int(round(t / dt)))  # noqa: E731
 
     # 1. right: the proven top pick
-    pick = plan_pick(kin_r, q_r0, f_r0, obj_pos, np.array([0.0, 1.0]), table_z, spec, dt=dt, durations={"hold": 0.2})
+    # grasp_dir: the object's grasp axis (pick_planner.grasp_direction); any direction works for a cylinder
+    gd = np.array([0.0, 1.0]) if grasp_dir is None else np.asarray(grasp_dir, float)
+    pick = plan_pick(kin_r, q_r0, f_r0, obj_pos, gd, table_z, spec, dt=dt, durations={"hold": 0.2})
     if pick is None:
         return None, "right pick not reachable"
     right_segs = [s for s in pick.segments if s.name != "hold"]

@@ -2,8 +2,9 @@
 """Right-to-left handover episodes (soup can), recorded like run_pick.py (npz + 3 camera MP4s).
 
 Plan: scenes/handover_planner.py (docs/DECISIONS.md D19). Success = after the final hold the can is
-raised >= 5 cm above its resting height, within 6 cm of the LEFT fingertip point, and >= 8 cm from
-the right gripper's fingertips.
+raised >= 5 cm above its resting height, its center within (3 cm + half its height) of the LEFT
+fingertip point (the left grips the lower body, so a tall object's center sits higher), and >= 8 cm
+from the right gripper's fingertips.
 
 Usage:
   /data/isaac/isaacsim/bin/python scenes/run_handover.py --episodes 3 [--seed 0] [--no-video] [--trace]
@@ -13,6 +14,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("--episodes", type=int, default=3)
+parser.add_argument("--object", default="soup_can", help="any upright pick_task object tall enough for the side-wrap")
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--run-name", default="")
 parser.add_argument("--no-video", action="store_true")
@@ -21,6 +23,7 @@ parser.add_argument("--trace", action="store_true")
 parser.add_argument("--inset", type=float, default=0.12, help="handover point: can x as table inset (m)")
 parser.add_argument("--y", type=float, default=-0.04, help="handover point: can y (m, root frame)")
 parser.add_argument("--height", type=float, default=0.36, help="handover point: right gripper height above table (m)")
+parser.add_argument("--room", choices=("none", "walls", "full"), default="none")
 args = parser.parse_args()
 
 from isaacsim import SimulationApp
@@ -28,6 +31,7 @@ from isaacsim import SimulationApp
 simulation_app = SimulationApp({"headless": True})
 
 import env_common as E  # noqa: E402  (first isaaclab-related import: sets the asset root)
+from room import add_room  # noqa: E402
 
 if not args.no_video:
     E.enable_headless_cameras()
@@ -44,9 +48,9 @@ from isaaclab.scene import InteractiveScene  # noqa: E402
 
 import pick_task as T  # noqa: E402
 from handover_planner import HandoverPoint, plan_handover  # noqa: E402
+from pick_planner import grasp_direction  # noqa: E402
 from kinematics import tip_depth  # noqa: E402
 
-OBJECT = "soup_can"
 KEYS = ("joint_pos", "gripper", "ee_pose")
 
 
@@ -61,8 +65,9 @@ def fingertips(robot, arms, side):
 
 
 def main():
-    obj = T.OBJECTS[OBJECT]
+    obj = T.OBJECTS[args.object]
     cfg = T.make_scene_cfg(obj)
+    add_room(cfg, args.room)
     if args.no_video:
         for cam in T.CAMERAS:
             setattr(cfg, cam, None)
@@ -91,11 +96,12 @@ def main():
             for _ in range(3):
                 sim.render()
             scene.update(dt)
-        obj_p, _ = T.object_pose_root(scene)
+        obj_p, obj_q = T.object_pose_root(scene)
         st = T.measured_state(robot, arms)
         segments, why = plan_handover(
             arms.kin["right"], arms.kin["left"], st["right"]["joint_pos"], st["right"]["gripper"],
             st["left"]["joint_pos"], st["left"]["gripper"], obj_p, E.TABLE_HEIGHT - base[2], obj.grasp, hp, dt=dt,
+            grasp_dir=grasp_direction(obj_q, obj.grasp_axis_local),
         )
         rec = {"episode": ep, **info, "object_pos_root": obj_p.tolist()}
         if segments is None:
@@ -146,13 +152,13 @@ def main():
         lift = float(op[2] - (E.TABLE_HEIGHT + obj.rest_z))
         left_dist = float(np.linalg.norm(op - fingertips(robot, arms, "left")))
         right_dist = float(np.linalg.norm(op - fingertips(robot, arms, "right")))
-        ok = lift >= 0.05 and left_dist < 0.06 and right_dist >= 0.08
+        ok = lift >= 0.05 and left_dist < 0.03 + obj.grasp.height / 2.0 and right_dist >= 0.08
         rec.update(success=bool(ok), lift=lift, obj_to_left_tips=left_dist, obj_to_right_tips=right_dist, steps=step,
                    phases=[s[0] for s in segments])
         print(f"EPISODE {ep}: {'SUCCESS' if ok else 'FAIL'} lift={lift:.3f}m obj-left_tips={left_dist:.3f}m obj-right_tips={right_dist:.3f}m", flush=True)
         if ok or args.keep_failed:
             np.savez_compressed(out_dir / f"episode_{ep:04d}.npz", **{k: np.asarray(v, dtype=np.float32) for k, v in data.items()},
-                                success=ok, prompt="hand the soup can from the right hand to the left hand",
+                                success=ok, prompt=f"hand the {args.object.replace('_', ' ')} from the right hand to the left hand",
                                 phase_names=np.array([s[0] for s in segments]))
             if frames is not None:
                 for c in T.CAMERAS:
@@ -162,7 +168,7 @@ def main():
         summary.append(rec)
 
     n_ok = sum(r.get("success", False) for r in summary)
-    (out_dir / "summary.json").write_text(json.dumps({"task": "handover", "object": OBJECT, "seed": args.seed,
+    (out_dir / "summary.json").write_text(json.dumps({"task": "handover", "object": args.object, "seed": args.seed,
                                                       "handover_point": vars(hp), "episodes": summary,
                                                       "success_rate": n_ok / max(1, len(summary))}, indent=2))
     print(f"HANDOVER RUN DONE: {n_ok}/{len(summary)} success -> {out_dir}", flush=True)

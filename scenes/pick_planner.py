@@ -33,6 +33,7 @@ class GraspSpec:
     height: float  # object height; the pre-grasp keeps the fingertips above its top
     open_margin: float = 0.04  # fingers open this much wider than the object before descending
     min_tip_height: float = 0.01  # never put the fingertips lower than this above the table
+    yaw_tolerance: float = 0.0  # rad: grasps up to this far off the exact grasp axis are acceptable
 
     @property
     def grasp_height(self) -> float:
@@ -138,8 +139,13 @@ def plan_pick(
     n_yaws = max(1, int(round(2 * np.pi / spec.yaw_symmetry)))
     best = None
     obj_top = table_z + spec.height
-    for k in range(n_yaws):
-        yaw = yaw0 + k * spec.yaw_symmetry
+    best_off = 0.0
+    tol = spec.yaw_tolerance
+    offsets = [0.0] + [o for t in (tol / 2, tol) if t > 0 for o in (t, -t)]
+    for k, off in [(k, o) for o in offsets for k in range(n_yaws)]:
+        if best is not None and off != 0.0 and abs(off) > 0 and best_off == 0.0:
+            break  # an exact-axis grasp exists; don't trade it for an off-axis one
+        yaw = yaw0 + k * spec.yaw_symmetry + off
         rot = down_rotation(yaw)
         for seed in _seeds(kin, q_start):
             q_pre, pe, re = kin.ik(pre_pos, rot, seed, restarts=0)
@@ -154,9 +160,9 @@ def plan_pick(
             lift = _cartesian_line(kin, grasp_pos, lift_pos, rot, descend[-1], steps["lift"])
             if lift is None:
                 continue
-            travel = np.sum(np.abs(q_pre - q_start))
+            travel = np.sum(np.abs(q_pre - q_start)) + 2.0 * abs(off)  # prefer on-axis grasps
             if best is None or travel < best[0]:
-                best = (travel, yaw, q_pre, descend, lift)
+                best, best_off = (travel, yaw, q_pre, descend, lift), off
     if best is None:
         return None
     _, yaw, q_pre, descend, lift = best
