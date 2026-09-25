@@ -15,6 +15,8 @@ parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.R
 parser.add_argument("--headless", action="store_true", help="Run without the GUI.")
 parser.add_argument("--steps", type=int, default=0, help="Number of sim steps to run (0 = until window closed).")
 parser.add_argument("--snapshot", type=str, default="", help="Save an RGB image of the scene to this path.")
+parser.add_argument("--snapshot-view", choices=("table", "room"), default="table")
+parser.add_argument("--room", choices=("none", "walls", "full"), default="none")
 args = parser.parse_args()
 
 from isaacsim import SimulationApp
@@ -39,6 +41,7 @@ from env_common import (  # isort: skip
     print_world_bounds,
     run_main,
 )
+from room import ROOM_VIEW_EYE, ROOM_VIEW_TARGET, add_room  # isort: skip
 
 from pathlib import Path
 
@@ -58,9 +61,14 @@ def main() -> None:
 
     sim_cfg = sim_utils.SimulationCfg(dt=1.0 / 60.0, device="cuda:0")
     sim = sim_utils.SimulationContext(sim_cfg)
-    sim.set_camera_view(eye=VIEW_EYE, target=VIEW_TARGET)
+    view_eye, view_target = (
+        (ROOM_VIEW_EYE, ROOM_VIEW_TARGET) if args.snapshot_view == "room" else (VIEW_EYE, VIEW_TARGET)
+    )
+    sim.set_camera_view(eye=view_eye, target=view_target)
 
-    scene = InteractiveScene(RobotEnvSceneCfg(num_envs=1, env_spacing=4.0))
+    cfg = RobotEnvSceneCfg(num_envs=1, env_spacing=4.0)
+    add_room(cfg, args.room)
+    scene = InteractiveScene(cfg)
     harden_finger_mimics()
 
     camera = None
@@ -92,8 +100,8 @@ def main() -> None:
 
     if camera is not None:
         camera.set_world_poses_from_view(
-            eyes=torch.tensor([VIEW_EYE], device=sim.device),
-            targets=torch.tensor([VIEW_TARGET], device=sim.device),
+            eyes=torch.tensor([view_eye], device=sim.device),
+            targets=torch.tensor([view_target], device=sim.device),
         )
 
     home = robot.data.default_joint_pos.clone()  # = READY_JOINT_POS

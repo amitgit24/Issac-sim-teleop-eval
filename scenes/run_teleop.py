@@ -24,6 +24,7 @@ parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--no-jitter", action="store_true", help="object exactly at the pick-zone center, yaw 0")
 parser.add_argument("--run-name", default="")
 parser.add_argument("--max-seconds", type=float, default=0.0, help="stop after this much sim time (0 = until closed)")
+parser.add_argument("--room", choices=("none", "walls", "full"), default="none")
 args = parser.parse_args()
 
 from isaacsim import SimulationApp
@@ -31,6 +32,7 @@ from isaacsim import SimulationApp
 simulation_app = SimulationApp({"headless": args.headless})
 
 import env_common as E  # noqa: E402  (first isaaclab-related import: sets the asset root)
+from room import add_room  # noqa: E402
 
 if not args.no_video:
     E.enable_headless_cameras()
@@ -84,6 +86,7 @@ def make_recorder():
 def main():
     obj = T.OBJECTS[args.object]
     cfg = T.make_scene_cfg(obj)
+    add_room(cfg, args.room)
     if args.no_video:
         for cam in T.CAMERAS:
             setattr(cfg, cam, None)
