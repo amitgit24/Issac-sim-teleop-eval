@@ -91,6 +91,16 @@ Goal: position-based pick with the right arm, simple object first, then househol
 4. Fixed the scripted operator's yaw (M37). In sim: turn −65°, descend with one automatic reconfiguration, grasp, lift the cube 0.119 m; the episode exports and validates in LeRobot format.
 5. Input test with injected carb events: 28/28 (keyboard + virtual gamepad). GUI launch on a display with live input: clean. No human operator session recorded yet.
 
+## Step 8 — Asset inventory, room, clutter, pick-and-place, handover variety (2026-09-25)
+
+1. Asked the owner about assets: kitchenware + tools + containers, from the NVIDIA/YCB library, for clutter, pick-and-place and handover variety.
+2. Surveyed 21 candidates (`tools/survey_assets.py`): YCB items are Y-up and visual-only; Props mugs are meters and visual-only; ArchVis items are centimetres; the KLT bin has physics.
+3. Physics wrappers for all visual-only items; the cm case needed a split visual/collision design (M39). Drop test 21/21 after fixing a tilt-check bug (M40). Registry `scenes/inventory.py`, `docs/INVENTORY.md`.
+4. Room (owner request mid-step) delegated to Codex with a spec: `scenes/room.py`, presets none / walls / full, `--room` in all runners (D25). Verified.
+5. Clutter (`scenes/clutter.py`, `--clutter N`) and pick-and-place (`scenes/place_planner.py`, `scenes/run_pick_place.py`, container spot search). Fixed retreat/depth (M41) and the settled check (M42): soup can → KLT bin 10/10, with 6 clutter items 3/3.
+6. Inventory pick verification: 0 grasp failures; misses were "no plan" for 2-fold-symmetric items. Yaw tolerance (D26, M44): mugs 9/10, grey bowl 10/10, glasses 10/10, foam brick 8/10, marker 7/10.
+7. Handover variety: `--object` plus fixes (M43): soup can 5/5, glass_short 5/5, glass_tall 5/5, mustard 5/5, mug_c1 4/5; foam brick too short for the side-wrap.
+
 ## Next (not started)
 
 - Record human teleop demos; larger scripted data collection; export with `tools/export_lerobot.py`.

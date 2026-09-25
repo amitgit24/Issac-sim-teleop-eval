@@ -189,3 +189,23 @@ during reconfiguration, like a person would.
 **M38 — LeRobot's default video decoder (torchcodec) does not load here.**
 Use `video_backend="pyav"`. Also: an image tolerance picked just above the worst observed diff (5.0
 vs 4.95) is not evidence by itself; confirmed alignment separately on high-motion frames (20/20).
+
+## Inventory, room, pick-and-place (step 8, 2026-09-25)
+
+**M39 — physics wrappers for centimetre assets.**
+Authoring the wrapper in the source's units still re-triggered the shrink (glass 0.0953 m → 0.001 m after `sim.reset()`). A meter wrapper that references the cm asset untouched was not unit-corrected at all (glass 9.5 m tall): only a directly spawned file is corrected, not a nested reference. Fix: meter wrapper; `/Prop/Visual` = untouched reference scaled by metersPerUnit on our own prim; `/Prop/Collision` = invisible mesh from the source points in metres. Verified: size unchanged after reset, rests on the table.
+
+**M40 — drop-test tilt check applied the rest rotation twice.**
+It reported exactly 90° for the three upright-rotated YCB items (bowl, pitcher, mug), while their resting sizes showed them upright. Fixed: tilt = angle between world up and R_now · (R_rest⁻¹ · z).
+
+**M41 — pick-and-place was over-constrained at first.**
+0 feasible container spots: the 10 cm straight retreat after release crossed an IK branch boundary. After release the gripper is free, so the fix is a 4 cm straight lift, then a checked joint-space move home. Releasing at floor level in the deep bin was also unreachable, so the runner uses the deepest reachable release depth.
+
+**M42 — "settled" measured as instantaneous speed was noisy.**
+Cans lying in the ribbed bin read 2–4 cm/s (flagged as failures) while moving ≤ 0.1 cm over the last second. Settled is now displacement over the last second < 1 cm.
+
+**M43 — handover assumptions from the soup can leaked to other objects.**
+The planner always used the can's grasp direction (mugs: "right pick not reachable"), and the success check measured from the object's center with a fixed 6 cm (a 14 cm glass held low "failed" while clearly held). Fixed: use each object's grasp axis; threshold = 3 cm + half the object's height.
+
+**M44 — exact grasp axis halved coverage for 2-fold-symmetric objects.**
+Mugs, bowl, marker and brick were pickable in only 5/10 orientations. A per-object yaw tolerance (exact axis first) raised mugs to 9/10 with zero grasp failures.

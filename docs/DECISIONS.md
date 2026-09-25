@@ -100,3 +100,18 @@ Handover point from `tools/search_handover_point.py` (10 feasible points): can a
 
 ## D21 — Teleop design (2026-09-25)
 World-frame end-effector velocity control with online IK from the previous joints, a safe workspace clamp (fingertips never below the table), hold-on-limit, and automatic reconfiguration (M35). Keyboard + Xbox-layout gamepad through `carb.input` (our own mapping, not Isaac Lab's Se3 devices, so arm switching and recording controls fit). Scripted source for tests. Recording is identical to the scripted demos (D15); `phase` = active arm (0 right, 1 left).
+
+## D22 — Object inventory with a drop-test gate (2026-09-25)
+The owner chose kitchenware, tools and containers from the NVIDIA/YCB library, for clutter, pick-and-place and handover variety. `scenes/inventory.py` is the registry; `tools/survey_assets.py` measures candidates (units, up axis, physics, size); `tools/make_physics_prop.py` wraps visual-only ones (M39); `tools/drop_test_assets.py` gates entry (21/21 pass). Fruit bowl dropped (44 × 44 × 67 cm, includes a stand). Real masses (YCB published values where available).
+
+## D23 — Clutter (2026-09-25)
+Random non-overlapping placement per episode with conservative circular footprints and exclusion zones (pick zone, handover / place target, robot-side strip). Items are chosen per run and re-placed per episode (spawning per episode would be slow).
+
+## D24 — Pick-and-place into a fixed container (2026-09-25)
+KLT bin as a kinematic place target at the feasible spot found offline (inset 0.26 m, y −0.04). Deepest reachable release, strict success check (inside, below rim, at rest, released). Serving bowl and white tray stay clutter-only: no reachable spot with this robot placement.
+
+## D25 — Room built by Codex (2026-09-25)
+`scenes/room.py` + `docs/ROOM.md`: presets `none` (default, unchanged results), `walls`, `full` (5.0 × 4.56 × 2.7 m, 2 side tables, 2 bookcases, 4 pictures, decor). Visual-only ArchVis furniture spawned directly; collidable walls; ceiling off. Verified by Codex and re-checked visually: picks 3/3 with and without the room. Note: two furniture pieces are scaled non-uniformly to realistic sizes.
+
+## D26 — Grasp-yaw tolerance (2026-09-25)
+`GraspSpec.yaw_tolerance`: exact-axis grasps are tried first, then ±tol/2 and ±tol, with a travel penalty for off-axis. Mugs / grey bowl ±35° (body grasp away from the handle), marker / foam brick ±15°.

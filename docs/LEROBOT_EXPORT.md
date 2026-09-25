@@ -18,22 +18,22 @@ The state fields are measured before the action; action EE poses are the recorde
 From the repository root, export and validate with:
 
 ```bash
-LD_LIBRARY_PATH=/home/user/ffmpeg-7.1/lib:${LD_LIBRARY_PATH:-} \
-  /home/user/RoboTwin/policy/pi05/.venv/bin/python tools/export_lerobot.py \
+LD_LIBRARY_PATH=<ffmpeg>/lib:${LD_LIBRARY_PATH:-} \
+  <lerobot-env>/bin/python tools/export_lerobot.py \
   --runs artifacts/episodes/video_cube artifacts/episodes/video_soup_can \
          artifacts/episodes/video_mustard artifacts/episodes/video_mug \
          artifacts/episodes/video_handover \
   --out artifacts/datasets/robot_env_demo_v0 --repo-id local/robot_env_demo_v0 --overwrite
 
-LD_LIBRARY_PATH=/home/user/ffmpeg-7.1/lib:${LD_LIBRARY_PATH:-} \
-  /home/user/RoboTwin/policy/pi05/.venv/bin/python tools/validate_lerobot.py \
+LD_LIBRARY_PATH=<ffmpeg>/lib:${LD_LIBRARY_PATH:-} \
+  <lerobot-env>/bin/python tools/validate_lerobot.py \
   --dataset artifacts/datasets/robot_env_demo_v0 \
   --runs artifacts/episodes/video_cube artifacts/episodes/video_soup_can \
          artifacts/episodes/video_mustard artifacts/episodes/video_mug \
          artifacts/episodes/video_handover
 ```
 
-The tools require a Python environment with LeRobot v2.1 (`lerobot==0.1.0` in the verified environment), NumPy, and PyAV; they do not import Isaac Sim. The FFmpeg shared-library path is needed for PyAV, and `/home/user/ffmpeg-7.1/bin/ffmpeg` is the matching command-line binary for inspection. LeRobot's default SVT-AV1 encoder is used when available, with H.264 as a fallback.
+The tools require a Python environment with LeRobot v2.1 (`lerobot==0.1.0` in the verified environment), NumPy, and PyAV; they do not import Isaac Sim. The FFmpeg shared-library path is needed for PyAV, and `<ffmpeg>/bin/ffmpeg` is the matching command-line binary for inspection. LeRobot's default SVT-AV1 encoder is used when available, with H.264 as a fallback.
 
 The validator reloads the dataset with `LeRobotDataset`, requires exact float32 numeric values, phase indices, episode/frame counts, and task strings, and decodes both source and exported video. By default it compares every frame with a per-frame RGB mean-absolute-difference tolerance of 5.0 intensity levels, allowing normal lossy re-encoding. Use `--image-stride N` for a sampled image check or `--image-mad-tolerance X` to override the threshold.
 

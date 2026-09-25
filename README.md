@@ -10,7 +10,7 @@
 
 ![OpenArm right-to-left soup-can handover](media/handover.gif)
 
-> This project is actively developed. Scripted manipulation, episode recording, LeRobot v2.1 export and keyboard/gamepad teleoperation are working and verified; policy integration and batch evaluation come next.
+> This project is actively developed. Scripted manipulation (pick, pick-and-place, handover), a verified 21-object inventory, table clutter, a configurable furnished room, episode recording, LeRobot v2.1 export and keyboard/gamepad teleoperation are working and verified; policy integration and batch evaluation come next.
 
 ## Highlights
 
@@ -20,6 +20,8 @@
 - Video-enabled episodes contain joint positions, gripper state, end-effector pose, three synchronized camera videos, and a JSON summary.
 - The robot asset was rebuilt from URDF with convex-decomposition colliders and a rigid finger mimic; the gripper is force-limited to 3 N·m.
 - Placement was selected through a reachability search: the shoulders sit 0.40 m above the tabletop and 0.05 m behind its edge.
+- **21-object inventory** (kitchenware, tools, containers from the NVIDIA/YCB library), each drop-tested before use; **pick-and-place** into a bin and **random table clutter**.
+- **Configurable room** around the table: presets `none` / `walls` / `full` (side tables, bookcases, paintings, decor).
 - **Keyboard / gamepad teleoperation** of either arm with a safe workspace clamp, hold-on-limit and automatic arm reconfiguration; teleop episodes record in the same format.
 - **LeRobot v2.1 export** with an exact-value validator: joints, gripper and EE pose for observation and action, plus three video streams.
 - The engineering trail is documented end to end in [the process log](docs/PROCESS_LOG.md), [design decisions](docs/DECISIONS.md), and [mistakes and lessons](docs/MISTAKES.md).
@@ -27,6 +29,8 @@
 [Watch the three-camera handover video](media/handover_3cams.mp4) · overhead + right wrist + left wrist
 
 ![Cube, soup can, mustard bottle, and mug picks](media/picks_grid.gif)
+
+![Pick-and-place into a bin, with clutter, in the furnished room](media/pick_place_room.gif)
 
 ## Pipeline and status
 
@@ -55,6 +59,10 @@ Results below are from the final scripted demonstrator, with 10 episodes per tas
 | Pick mustard bottle (YCB) | **10/10** |
 | Pick mug (YCB) | **8/10** — two orientations returned `no plan` and were never attempted; all **8/8 executed grasps succeeded** |
 | Handover, right → left (soup can) | **10/10**, plus **3/3** recorded on video |
+| Pick-and-place, soup can → KLT bin | **10/10**; with 6 clutter items **3/3** |
+| Inventory picks: glasses · grey bowl · mugs (×4) · foam brick · marker | **10/10** · **10/10** · **9/10** each · **8/10** · **7/10** (all misses = `no plan`, 0 grasp failures) |
+| Handover variety: glasses · mustard · mug | **5/5** · **5/5** · **4/5** |
+| Inventory drop test (stable, correct size after reset) | **21/21** items |
 
 Kinematics and hold checks:
 
@@ -108,6 +116,12 @@ An unreachable pose is reported as `no plan` and is not executed.
 
 [`scenes/handover_planner.py`](scenes/handover_planner.py) keeps the soup can upright. The right hand picks near the top and carries it to the handover point; the left hand approaches horizontally, wraps the lower body, and closes. The right releases and lifts away before the left backs off while holding the can. Separating the two grips vertically keeps both hands clear and places the can's center of mass inside the receiving grasp.
 
+### Object inventory, clutter and pick-and-place
+
+![The furnished room preset](media/room_full.png)
+
+[`scenes/inventory.py`](scenes/inventory.py) registers 21 objects (kitchenware, tools, containers). Visual-only library assets get physics from [`tools/make_physics_prop.py`](tools/make_physics_prop.py); every item must pass a drop test before use. [`scenes/clutter.py`](scenes/clutter.py) scatters them as distractors each episode, and [`scenes/place_planner.py`](scenes/place_planner.py) extends the pick with a transfer, a descent into the container and a release. The room ([`scenes/room.py`](scenes/room.py)) is optional and never touches the task area. Details: [`docs/INVENTORY.md`](docs/INVENTORY.md), [`docs/ROOM.md`](docs/ROOM.md).
+
 ### Keyboard / gamepad teleoperation
 
 ![Teleop cube pick: overhead and right-wrist views](media/teleop_pick.gif)
@@ -146,7 +160,7 @@ The action end-effector pose is exact FK of the commanded joint target. [`tools/
 ```text
 .
 ├── assets/
-│   ├── objects/                 # physics-wrapped YCB mug
+│   ├── objects/                 # physics-wrapped inventory objects
 │   └── openarm/                 # project-owned OpenArm URDF and USD
 ├── scenes/
 │   ├── env_common.py            # table, robot, pedestal, actuators, checks
@@ -158,6 +172,11 @@ The action end-effector pose is exact FK of the commanded joint target. [`tools/
 │   ├── run_pick.py              # pick episodes and recording
 │   ├── run_handover.py          # handover episodes and recording
 │   ├── run_teleop.py            # keyboard / gamepad teleop app with recording
+│   ├── run_pick_place.py        # pick-and-place episodes and recording
+│   ├── place_planner.py         # transfer, descend into container, release
+│   ├── inventory.py             # 21 verified objects, roles, grasp specs
+│   ├── clutter.py               # random non-overlapping table clutter
+│   ├── room.py                  # configurable room presets
 │   ├── teleop_controller.py     # EE velocity control, IK, clamp, reconfiguration
 │   ├── teleop_input.py          # keyboard, gamepad and scripted input sources
 │   └── robot_env_scene.py       # base-scene validation entry point
@@ -188,8 +207,11 @@ PY=/path/to/isaacsim/bin/python   # Isaac Sim 5.1
 $PY scenes/run_pick.py --object cube --episodes 5
 $PY scenes/run_pick.py --object mug --episodes 10 --no-video --trace
 
-# Right-to-left soup-can handover
-$PY scenes/run_handover.py --episodes 3
+# Right-to-left handover (soup_can, glass_short, glass_tall, mustard, mug_c1, ...)
+$PY scenes/run_handover.py --episodes 3 --object glass_tall
+
+# Pick-and-place into the KLT bin, 6 clutter items, furnished room
+$PY scenes/run_pick_place.py --object soup_can --episodes 5 --clutter 6 --room full
 
 # Teleoperation (GUI): keyboard and/or gamepad
 $PY scenes/run_teleop.py --object mug
